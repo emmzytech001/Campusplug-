@@ -1,0 +1,21 @@
+{
+  "name": "campusplug",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CampusPlug student marketplace and accommodation platform",
+  "type": "module",
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "migrate": "node src/db.js --migrate",
+    "check": "node --check src/server.js && node --check src/db.js && node --check public/app.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.3",
+    "multer": "^2.0.1"
+  }
+}

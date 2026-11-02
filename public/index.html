@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#a94412">
+  <meta name="description" content="CampusPlug helps UNIZIK students find trusted accommodation, campus vendors, and useful student services.">
+  <title>CampusPlug · Find your campus fit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="#/" aria-label="CampusPlug home">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="11" fill="#f3bf45"/><path d="M8 20 20 9l12 11v11H8z" fill="#211b17"/><rect x="16" y="16" width="2.5" height="6" rx="1" fill="#f3bf45"/><rect x="21.5" y="16" width="2.5" height="6" rx="1" fill="#f3bf45"/><rect x="15" y="22" width="10" height="6" rx="2.5" fill="#f3bf45"/></svg></span>
+          <span>CampusPlug</span>
+        </a>
+        <nav class="desktop-nav" aria-label="Primary navigation">
+          <a href="#/">Find a place</a>
+          <a href="#/marketplace">Marketplace</a>
+          <a href="#/tools">Student tools</a>
+          <a href="#/apply/landlord">List a property</a>
+        </nav>
+        <div class="topbar-actions" id="topbar-actions"></div>
+        <button class="icon-button mobile-only" id="menu-button" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">☰</button>
+      </div>
+      <nav class="mobile-menu container" id="mobile-menu" hidden aria-label="Mobile navigation">
+        <a href="#/">Find a place</a><a href="#/marketplace">Marketplace</a><a href="#/tools">Student tools</a><a href="#/apply/landlord">List a property</a><a href="#/apply/vendor">Become a vendor</a>
+      </nav>
+    </header>
+
+    <main id="app" class="container" tabindex="-1"></main>
+
+    <footer class="footer">
+      <div class="container footer-grid">
+        <div><div class="brand footer-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="11" fill="#f3bf45"/><path d="M8 20 20 9l12 11v11H8z" fill="#211b17"/></svg></span><span>CampusPlug</span></div><p>Built for student life at UNIZIK. Find your fit, meet campus life, and move with more confidence.</p></div>
+        <div><h2>Explore</h2><a href="#/">Accommodation</a><a href="#/marketplace">Campus marketplace</a><a href="#/tools">Student tools</a></div>
+        <div><h2>For partners</h2><a href="#/apply/landlord">Landlords & agents</a><a href="#/apply/vendor">Vendors</a><a href="#/signin">Sign in</a></div>
+        <div><h2>Trust</h2><p>Listings marked demo are examples from the original prototype. Approval and verification are handled by the CampusPlug admin team before real content is published.</p></div>
+      </div>
+      <div class="container footer-bottom"><span>© 2026 CampusPlug</span><span>Stay safe: inspect first, confirm fees in writing, and never pay a stranger before you verify.</span></div>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="dialog" class="modal"><div id="dialog-content"></div><button class="modal-close" id="dialog-close" type="button" aria-label="Close dialog">×</button></dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+allowBuilds:
+  bcryptjs: false
+  mysql2: true
