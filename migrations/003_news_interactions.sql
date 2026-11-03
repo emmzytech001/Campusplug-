@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS post_likes (
+  post_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (post_id, user_id),
+  CONSTRAINT fk_post_likes_post FOREIGN KEY (post_id) REFERENCES campus_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_post_likes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS post_comments (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  post_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  body TEXT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'published',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_post_comments_post FOREIGN KEY (post_id) REFERENCES campus_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_post_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_post_comments_public (post_id, status, created_at)
+);
