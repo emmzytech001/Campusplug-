@@ -142,7 +142,7 @@ app.get("/api/properties", async (req, res, next) => {
 app.get("/api/products", async (_req, res, next) => { try { const rows = await query("SELECT p.*, u.name AS vendor_name FROM products p LEFT JOIN users u ON u.id=p.vendor_id WHERE p.published=1 AND p.status='approved' ORDER BY p.updated_at DESC LIMIT 100"); res.json({ products: await attachProductImages(rows) }); } catch (error) { next(error); } });
 app.get("/api/posts", async (req, res, next) => { try {
   const user = await currentUser(req);
-  const rows = await query(`SELECT p.id,p.post_type,p.title,p.body,p.is_demo,p.status,p.created_at,p.updated_at,u.name AS author_name,
+  const rows = await query(`SELECT p.id,p.post_type,p.title,p.body,p.image_url,p.is_demo,p.status,p.created_at,p.updated_at,u.name AS author_name,
     (SELECT COUNT(*) FROM post_likes l WHERE l.post_id=p.id) AS like_count,
     (SELECT COUNT(*) FROM post_comments c WHERE c.post_id=p.id AND c.status='published') AS comment_count
     FROM campus_posts p LEFT JOIN users u ON u.id=p.author_id WHERE p.status='published' ORDER BY p.created_at DESC LIMIT 100`);
@@ -155,9 +155,10 @@ app.get("/api/posts/:id/comments", async (req,res,next)=>{try{
   res.json({comments});
 }catch(error){next(error)}});
 app.post("/api/posts", requireAuth, async (req,res,next)=>{try{
-  const title=clean(req.body.title,180), body=clean(req.body.body,8000), postType=clean(req.body.postType||"community",40);
+  const title=clean(req.body.title,180), body=clean(req.body.body,8000), postType=clean(req.body.postType||"community",40), imageUrl=clean(req.body.imageUrl,700);
   if(!title||body.length<10) return res.status(400).json({error:"Add a headline and at least a few words for the update."});
-  const result=await execute("INSERT INTO campus_posts (author_id,post_type,title,body,status,is_demo) VALUES (?,?,?,?, 'pending',0)",[req.user.id,postType,title,body]);
+  if(imageUrl && !/^\/manus-storage\/[A-Za-z0-9._\/-]+$/.test(imageUrl)) return res.status(400).json({error:"That news image is not valid."});
+  const result=await execute("INSERT INTO campus_posts (author_id,post_type,title,body,image_url,status,is_demo) VALUES (?,?,?,?,?, 'pending',0)",[req.user.id,postType,title,body,imageUrl||null]);
   res.status(201).json({id:result.insertId,message:"Your update was sent for review. It will appear after CampusPlug moderation."});
 }catch(error){next(error)}});
 app.post("/api/posts/:id/like", requireAuth, async (req,res,next)=>{try{
@@ -229,7 +230,7 @@ async function saveImages(kind, id, images) {
 }
 app.post("/api/uploads/presign", requireAuth, async (req, res, next) => {
   try {
-    const mime = clean(req.body.mime, 80), size = int(req.body.size, 0), kind = req.body.kind === "product" ? "product" : "property";
+    const mime = clean(req.body.mime, 80), size = int(req.body.size, 0), kind = ["property", "product", "post"].includes(req.body.kind) ? req.body.kind : "property";
     if (!/^image\/(jpeg|png|webp|gif)$/i.test(mime) || size < 1 || size > 8 * 1024 * 1024) return res.status(400).json({ error: "Use a JPG, PNG, WebP, or GIF image up to 8 MB." });
     if (kind === "property" && !hasRole(req.user, "Landlord / agent")) return res.status(403).json({ error: "Only approved accommodation partners can upload property images." });
     if (kind === "product" && !hasRole(req.user, "Vendor")) return res.status(403).json({ error: "Only approved vendors can upload product images." });
@@ -256,8 +257,8 @@ app.patch("/api/admin/comments/:id", requireAdmin, async (req,res,next)=>{try{
   const status=["published","hidden"].includes(req.body.status)?req.body.status:"hidden"; await execute("UPDATE post_comments SET status=? WHERE id=?",[status,int(req.params.id)]); res.json({ok:true});
 }catch(error){next(error)}});
 app.get("/api/admin/posts", requireAdmin, async (_req,res,next)=>{try{res.json({posts:await query("SELECT * FROM campus_posts ORDER BY created_at DESC LIMIT 200")})}catch(error){next(error)}});
-app.post("/api/admin/posts", requireAdmin, async (req,res,next)=>{try{const b=req.body;const title=clean(b.title,180),body=clean(b.body,8000),postType=clean(b.postType||"news",40);if(!title||!body)return res.status(400).json({error:"Add a headline and update body."});const result=await execute("INSERT INTO campus_posts (author_id,post_type,title,body,status,is_demo) VALUES (?,?,?,?,\'published\',0)",[req.user.id,postType,title,body]);res.status(201).json({id:result.insertId})}catch(error){next(error)}});
-app.patch("/api/admin/posts/:id", requireAdmin, async (req,res,next)=>{try{await execute("UPDATE campus_posts SET title=COALESCE(NULLIF(?,\'\'),title), body=COALESCE(NULLIF(?,\'\'),body), status=IF(?=\'hidden\',\'hidden\',\'published\'), updated_at=NOW() WHERE id=?",[clean(req.body.title,180),clean(req.body.body,8000),clean(req.body.status,20),int(req.params.id)]);res.json({ok:true})}catch(error){next(error)}});
+app.post("/api/admin/posts", requireAdmin, async (req,res,next)=>{try{const b=req.body;const title=clean(b.title,180),body=clean(b.body,8000),postType=clean(b.postType||"news",40);if(!title||!body)return res.status(400).json({error:"Add a headline and update body."});const imageUrl=clean(b.imageUrl,700);if(imageUrl && !/^\/manus-storage\/[A-Za-z0-9._\/-]+$/.test(imageUrl)) return res.status(400).json({error:"That news image is not valid."});const result=await execute("INSERT INTO campus_posts (author_id,post_type,title,body,image_url,status,is_demo) VALUES (?,?,?,?,?,\'published\',0)",[req.user.id,postType,title,body,imageUrl||null]);res.status(201).json({id:result.insertId})}catch(error){next(error)}});
+app.patch("/api/admin/posts/:id", requireAdmin, async (req,res,next)=>{try{const imageUrl=clean(req.body.imageUrl,700);if(imageUrl && !/^\/manus-storage\/[A-Za-z0-9._\/-]+$/.test(imageUrl)) return res.status(400).json({error:"That news image is not valid."});await execute("UPDATE campus_posts SET title=COALESCE(NULLIF(?,\'\'),title), body=COALESCE(NULLIF(?,\'\'),body), image_url=COALESCE(NULLIF(?,\'\'),image_url), status=IF(?=\'hidden\',\'hidden\',\'published\'), updated_at=NOW() WHERE id=?",[clean(req.body.title,180),clean(req.body.body,8000),imageUrl,clean(req.body.status,20),int(req.params.id)]);res.json({ok:true})}catch(error){next(error)}});
 app.get("/api/admin/social", requireAdmin, async (_req,res,next)=>{try{const row=(await query("SELECT setting_value FROM app_settings WHERE setting_key=\'social_links_json\' LIMIT 1"))[0];res.json({links:parseJson(row?.setting_value,[])})}catch(error){next(error)}});
 app.put("/api/admin/social", requireAdmin, async (req,res,next)=>{try{const links=Array.isArray(req.body.links)?req.body.links.slice(0,12).map(x=>({name:clean(x.name,60),url:clean(x.url,500),description:clean(x.description,180)})).filter(x=>x.name&&/^https?:\/\//i.test(x.url)):[];await execute("INSERT INTO app_settings (setting_key,setting_value) VALUES (\'social_links_json\',?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)",[JSON.stringify(links)]);res.json({links})}catch(error){next(error)}});
 app.get("/api/admin/roommates", requireAdmin, async (_req,res,next)=>{try{res.json({listings:await query("SELECT r.*,u.name AS user_name,u.email FROM roommate_listings r JOIN users u ON u.id=r.user_id ORDER BY FIELD(r.status,\'pending\',\'approved\',\'rejected\'),r.created_at DESC")})}catch(error){next(error)}});
