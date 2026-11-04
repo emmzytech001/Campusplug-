@@ -9,13 +9,14 @@
     "dev": "node src/server.js",
     "start": "node src/server.js",
     "migrate": "node src/db.js --migrate",
-    "check": "node --check src/server.js && node --check src/db.js && node --check public/app.js"
+    "check": "node --check src/server.js && node --check src/db.js && node --check public/app.js && node --check netlify/functions/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
     "mysql2": "^3.14.3",
-    "multer": "^2.0.1"
+    "multer": "^2.0.1",
+    "serverless-http": "^3.2.0"
   }
 }

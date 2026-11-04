@@ -267,5 +267,9 @@ app.patch("/api/admin/reports/:id", requireAdmin, async (req, res, next) => { tr
 app.use((req, res, next) => { if (req.path.startsWith("/api/")) return res.status(404).json({ error: "API route not found." }); res.sendFile(path.join(root, "public", "index.html")); });
 app.use((error, _req, res, _next) => { console.error(error); res.status(error.status || 500).json({ error: error.message || "Something went wrong. Try again." }); });
 
-await migrate();
-app.listen(port, "0.0.0.0", () => console.log(`CampusPlug listening on ${port}`));
+export { app };
+
+if (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  await migrate();
+  app.listen(port, "0.0.0.0", () => console.log(`CampusPlug listening on ${port}`));
+}
