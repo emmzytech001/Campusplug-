@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.sql.dump
+*.dump
+*.backup
+*.bak
+backup/
+backups/
+database-backup*
+*.zip
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*
