@@ -4,3 +4,5 @@
 
 
 .profile-avatar-preview{width:88px;height:88px;object-fit:cover;border-radius:50%;display:block;margin-top:10px;border:3px solid var(--line);}
+
+.public-profile-card{max-width:720px;margin:0 auto;display:grid;gap:16px}.profile-activity{margin-top:24px}
