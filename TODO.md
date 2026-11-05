@@ -1,51 +1,43 @@
-# CampusPlug delivery outcomes
 
-## 1. Real student accounts
+## 8. Accommodation improvements
 
-- [ ] Students can create an account with email/password.
-- [ ] Students can sign in and sign out through the website.
-- [ ] The sign-in page supports Google sign-up/sign-in when the Google OAuth credentials are configured.
-- [ ] The application uses a durable authenticated session and does not rely on the old localStorage-only sign-in preview.
-- [ ] A signed-in user can have more than one role, including Student, Landlord / agent, and Vendor.
+- [ ] Students can filter accommodation by location, price, room type, facilities, availability, and walking time where reliable data exists.
+- [ ] Public property details show photographs, descriptions, owner/agent context, availability, facilities, verification status, and in-platform enquiries without exposing private contact details.
+- [ ] Students can submit honest post-stay reviews only for accommodation records they have a relevant completed enquiry/relationship with; no fake ratings or reviews are seeded.
+- [ ] Landlords and agents can manage their approved listings and enquiries from a role-aware dashboard; new or edited listings remain pending until admin approval.
 
-## 2. Durable student and marketplace data
+## 9. Roommate matching and private connections
 
-- [ ] A managed database stores student profiles, roles, sessions, applications, accommodation listings, listing images, vendor products, product images, favorites, reports, and admin status changes.
-- [ ] The application runs deterministic migrations and preserves data across restarts.
-- [ ] Images are uploaded through an authorized server flow to durable project storage and their stable addresses are stored with the owning record.
-- [ ] Demo records are clearly identified as examples and are not presented as real verified user submissions.
+- [ ] Students can create profiles with preferred area, budget, move-in period, and living-arrangement preferences.
+- [ ] Approved roommate profiles can be browsed without publicly exposing phone numbers, email addresses, or sensitive information.
+- [ ] Students can send introduction requests and listing owners can accept or decline them.
+- [ ] Accepted roommate connections can use private in-platform communication; users can report or block unsafe interactions.
 
-## 3. Accommodation discovery
+## 10. Vendor dashboards
 
-- [ ] Students can search lodges by name, area, features, budget, availability, walking time, and sort order.
-- [ ] Students can save and compare properties while signed in.
-- [ ] Public listing cards show approval/verification status, availability date, owner context, price, location, walking time, images, facilities, and safety guidance.
-- [ ] Students can submit an in-site enquiry or inspection request instead of relying on a custom WhatsApp message.
+- [ ] Approved vendors have a dashboard showing their business context, products, approval states, images, prices, stock, delivery information, and enquiries.
+- [ ] Vendors can add, edit, update availability, and unpublish their own products; products stay hidden until admin approval.
+- [ ] Server-side role and ownership checks prevent ordinary users from managing vendor records by changing browser state.
 
-## 4. Landlord / agent applications and property publishing
+## 11. CampusPlug Lounge
 
-- [ ] A landlord or agent can submit an application from the site with contact, coverage, and accommodation details.
-- [ ] An approved landlord or agent can create and edit property listings with pricing, area, facilities, availability, description, and images.
-- [ ] New or edited properties remain pending until the admin approves them.
-- [ ] Only approved and published properties appear in the public search.
+- [ ] Students can create moderated posts with text and pictures, like, comment, reply, share, save, and report content.
+- [ ] The Lounge supports useful categories and Latest/Popular sorting without anonymous posting.
+- [ ] Users can edit or delete their own posts; admins can review reports and hide inappropriate content.
 
-## 5. Vendor applications and products
+## 12. Private messaging and notifications
 
-- [ ] A vendor can submit a business application from the site with contact, category, location, and business details.
-- [ ] An approved vendor can add, edit, unpublish, and manage product listings with price, stock, delivery/pickup information, and images.
-- [ ] Vendor products remain hidden until the admin approves the vendor and the product.
-- [ ] Students can browse published products and submit an in-site order/enquiry.
+- [ ] Authorized users can send private messages, view participant-only conversations, see timestamps, and see unread counts.
+- [ ] Users can block/report other users and private conversations are never displayed publicly.
+- [ ] An in-app notification centre covers messages, roommate requests, post replies, enquiries, important announcements, and relevant marketplace activity with preference controls.
 
-## 6. Admin workspace
+## 13. Events and opportunities
 
-- [ ] An admin can review, approve, reject, edit, publish, unpublish, and soft-hide landlord applications, vendor applications, properties, products, reports, and selected campus content.
-- [ ] Admin screens show filters, status badges, ownership, timestamps, and the information needed to make a decision.
-- [ ] Admin actions are protected server-side and cannot be performed by ordinary users by changing browser state.
-- [ ] Admin can edit sample/content records and manage user role/status data.
+- [ ] Students can discover moderated events, programmes, workshops, competitions, scholarships, internships, and business opportunities.
+- [ ] Event records include title, description, date, location, organiser, registration information, and upcoming/past status.
+- [ ] Approved organisers can submit events for admin review before publication.
 
-## 7. Product quality and trust
+## 14. Student tools expansion
 
-- [ ] The existing CampusPlug visual direction is preserved and refined for responsive desktop and mobile layouts.
-- [ ] Forms have validation, accessible labels, keyboard focus states, useful errors, and clear success messages.
-- [ ] Public pages explain verification, availability, demo data, and safety practices without overstating guarantees.
-- [ ] The route manifest is served at `/manus-routes.json` and stays aligned with the implemented pages.
+- [ ] Existing budget planner, exam countdown, lodge checklist, and safety contacts remain available and mobile-friendly.
+- [ ] Students can add assignment/deadline reminders and access useful academic resources and campus survival guidance.

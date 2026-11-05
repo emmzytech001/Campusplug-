@@ -2,71 +2,52 @@
 
 ## Product scope
 
-CampusPlug will become a real UNIZIK student platform built from the uploaded prototype. The first production-oriented slice keeps the existing accommodation-first experience while adding durable accounts, role applications, admin moderation, property/product publishing, and image storage. WhatsApp-only application flows will be replaced with in-site submissions; WhatsApp may remain as an optional contact channel for public enquiries, but it will not be the approval or account system.
+CampusPlug will become a real UNIZIK student platform built from the uploaded prototype. The current accommodation-first experience, durable accounts, role applications, admin moderation, property/product publishing, campus updates, roommate listings, social links, and image storage remain the foundation.
+
+The approved expansion is phased and additive: accommodation improvements; roommate matching and private connections; vendor dashboards; CampusPlug Lounge; private messaging; notifications; events and opportunities; and useful student tools. The current Manus/MySQL/Express architecture remains in place while each slice is implemented, tested, and reviewed. A later Supabase migration is not part of this implementation pass.
+
+## Delivery phases
+
+1. **Trust and marketplace foundation:** enrich accommodation search/details and owner context, add honest review/rating records, complete roommate request accept/decline and private connection states, and give approved vendors a real dashboard for product management.
+2. **CampusPlug Lounge:** extend the moderated campus feed with categories, saved posts, replies, edit/delete-own-posts, reports, and latest/popular sorting.
+3. **Private messaging and notifications:** add participant-only conversations, unread counts, message reporting/blocking, and an in-app notification centre for messages, roommate requests, post replies, enquiries, and important announcements.
+4. **Events and opportunities:** add moderated event submissions, organiser details, dates, locations, registration links, and upcoming/past filtering.
+5. **Student tools:** retain the budget planner, exam countdown, lodge checklist, and safety contacts while adding assignment/deadline reminders, academic resources, and campus survival tips.
 
 ## Implementation approach
 
 - **Runtime:** Node.js + Express server, serving a responsive vanilla JavaScript frontend from `public/`.
-- **Persistence:** Managed MySQL through `DATABASE_URL`, with deterministic SQL migrations in `migrations/` and a small query/repository layer in `src/db.js`.
-- **Authentication:** Email/password accounts with bcrypt hashes and database-backed opaque sessions. Google OAuth 2.0 is wired through `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; the UI shows a clear setup state until those protected values are configured. Sessions use the required `webdev_app_session` cookie with `SameSite=None; Secure` for embedded HTTPS Preview.
-- **Authorization:** Student, landlord/agent, vendor, and admin roles. Role applications are stored and reviewed. Only approved admin records can publish properties/products. Admin access is controlled by `ADMIN_EMAILS`.
-- **Images:** Server-authorized presigned uploads to Manus Storage, with stable `/manus-storage/...` URLs persisted in the database and linked to properties/products.
-- **Admin workflows:** Admin dashboard tabs for applications, properties, products, reports, users, and content. Actions include approve, reject, publish/unpublish, edit, and soft-delete/hide.
-- **Seed data:** The prototype's sample lodges, campus services, vendors, and deals are migrated as clearly marked demo records. Real user-created data is separated with `is_demo` flags.
-- **Public experience:** Search, budget/distance filters, saved properties, property detail cards, roommate and campus content sections, and clear verification/availability language.
+- **Persistence:** Managed MySQL through `DATABASE_URL`, with deterministic additive SQL migrations in `migrations/` and the query layer in `src/db.js`.
+- **Authentication:** Existing email/password sessions and Google OAuth remain the account boundary. No private contact details are exposed in public roommate cards.
+- **Authorization:** Student, landlord/agent, vendor, and admin roles remain server-checked. Approval states gate public listings, vendor products, roommate profiles, posts, events, and messaging participants.
+- **Images:** Existing authorized presigned uploads to Manus Storage remain the media path until a separately approved Supabase migration.
+- **Admin workflows:** Each phase adds review/moderation controls rather than bypassing the existing admin queue.
+- **Performance:** Public feeds and searches stay paginated/limited and use indexed status/owner columns; private records are queried only for authorized participants.
 
-## Data model
+## Data model additions by phase
 
-Core tables: `users`, `sessions`, `role_applications`, `properties`, `property_images`, `products`, `product_images`, `favorites`, `campus_posts`, `reports`, and `app_settings`. Every mutable record carries status and timestamps. Ownership is enforced server-side; admin actions are audited through `admin_notes` and status metadata.
+The existing tables remain unchanged unless an additive migration is required. Phase 1 adds property reviews and explicit roommate connection/request states. Later phases add Lounge saves/replies/reports, conversations/messages/notifications, and events/opportunities. Each migration is idempotent through the existing migration runner and preserves existing records.
 
 ## Project structure
 
 ```text
-public/
-  index.html       # shell and accessible page regions
-  styles.css       # CampusPlug visual system and responsive layout
-  app.js           # browser state, API calls, routing, forms, and rendering
-  manus-routes.json
-src/
-  server.js        # Express app, routes, auth, admin actions, storage upload proxy
-  db.js            # MySQL pool, migrations, seed data, query helpers
-  auth.js          # password hashing, sessions, Google OAuth helpers
-migrations/
-  001_initial.sql  # idempotent schema and indexes
-plan.md
-TODO.md
-package.json
-.env.example
-Dockerfile
-app.config.ts
+public/             # shell, visual system, responsive UI, routes and feature pages
+src/server.js        # Express API, auth, authorization, moderation and storage uploads
+src/db.js            # MySQL pool, migrations, query helpers and seed handling
+src/auth.js          # password hashing, sessions and Google OAuth helpers
+migrations/          # additive schema changes for each expansion phase
+plan.md              # approved scope and design decisions
+TODO.md              # outcome-based delivery tracking
 ```
 
 ## Design direction
 
-### Alternatives considered
+The chosen design remains the warm neo-campus marketplace: contemporary community commerce with tactile cards, soft borders, practical dashboards, and a welcoming student-community tone. Existing CampusPlug colours, Bricolage Grotesque/DM Sans typography, rounded cards, burnt-orange actions, golden highlights, clear moderation states, and mobile-first layouts are preserved. New sections should feel like connected rooms in the same campus house rather than separate products.
 
-- Probability 0.06 — Quiet editorial campus guide with restrained typography and photo-led storytelling.
-- Probability 0.05 — Bright utility marketplace with playful iconography and dense dashboard controls.
-- Probability 0.04 — **Chosen: warm neo-campus marketplace**, combining practical product utility with a welcoming student-community tone.
+## Trust and safety decisions
 
-### Chosen design system
-
-- **Design Movement:** Warm neo-campus marketplace: contemporary community commerce with tactile cards, soft borders, and confident editorial type.
-- **Core Principles:** Trust before conversion; one clear next action per card; student-friendly language; admin clarity without visual clutter.
-- **Color Philosophy:** Cream and cocoa create familiarity and place; burnt orange is the action and verification color; golden yellow is a sparing confidence accent.
-- **Layout Paradigm:** A wide, left-anchored content rail with a compact sticky header, editorial hero/search band, and asymmetric card density rather than a generic centered dashboard grid.
-- **Signature Elements:** CampusPlug house-mark, rounded warm-surface cards, and orange/yellow status pills that make approval and availability legible.
-- **Interaction Philosophy:** Every action explains what happens next. Approval states are explicit, empty states teach the workflow, and destructive actions require a confirm step.
-- **Animation:** Small hover lifts and opacity transitions only; respect reduced-motion preferences and avoid motion that competes with forms or moderation controls.
-- **Typography System:** Bricolage Grotesque for brand and headings; DM Sans for controls and body copy; strong numeric prices and restrained metadata hierarchy.
-- **Brand Essence:** A trustworthy student marketplace for finding a better place to live and plug into campus life. Personality: warm, practical, protective.
-- **Brand Voice:** Headlines are direct and optimistic; CTAs name the outcome. Example lines: “Find a place that fits campus life.” and “Review once, publish with confidence.”
-- **Wordmark & Logo:** Preserve the yellow house-mark from the supplied prototype beside the CampusPlug wordmark.
-- **Signature Brand Color:** Burnt orange `#A94412`.
-
-## Additional improvements included
-
-- Explicit demo-data labels so sample records are not mistaken for verified listings.
-- Admin audit context and soft-delete states instead of hard deletion for moderation safety.
-- Role-aware empty states, approval timelines, and onboarding guidance.
-- Accessible form labels, keyboard focus states, responsive mobile navigation, and mobile-friendly admin tables.
+- Do not display private phone numbers or email addresses on public roommate profiles.
+- Do not invent ratings, reviews, availability, conversations, or transactions.
+- Student posts, roommate profiles, vendor products, listings, and events remain subject to the appropriate approval/moderation state.
+- Private messages are visible only to conversation participants and authorized moderators where safety review requires it.
+- Every new write path validates ownership/role server-side and uses the existing session boundary.

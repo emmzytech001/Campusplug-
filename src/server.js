@@ -128,17 +128,31 @@ app.get("/api/auth/google/callback", async (req, res, next) => {
 app.get("/api/properties", async (req, res, next) => {
   try {
     const params = [], where = ["p.published=1", "p.status='approved'"];
-    const q = clean(req.query.q, 120), area = clean(req.query.area, 100), max = int(req.query.max, 0), walk = int(req.query.walk, 0), sort = clean(req.query.sort, 10);
+    const q = clean(req.query.q, 120), area = clean(req.query.area, 100), roomType = clean(req.query.roomType, 80), availability = clean(req.query.availability, 32), max = int(req.query.max, 0), walk = int(req.query.walk, 0), sort = clean(req.query.sort, 10);
     if (q) { where.push("(p.title LIKE ? OR p.area LIKE ? OR p.facilities_json LIKE ?)"); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
     if (area) { where.push("p.area=?"); params.push(area); }
+    if (roomType) { where.push("p.room_type=?"); params.push(roomType); }
+    if (availability) { where.push("p.availability_status=?"); params.push(availability); }
     if (max) { where.push("p.price_year<=?"); params.push(max); }
     if (walk) { where.push("p.walk_minutes<=?"); params.push(walk); }
     const order = sort === "price" ? "p.price_year ASC" : sort === "rating" ? "p.walk_minutes ASC" : sort === "far" ? "p.walk_minutes DESC" : "p.updated_at DESC";
-    const rows = await query(`SELECT p.*, u.name AS owner_name FROM properties p LEFT JOIN users u ON u.id=p.owner_id WHERE ${where.join(" AND ")} ORDER BY ${order} LIMIT 100`, params);
+    const rows = await query(`SELECT p.*, u.name AS owner_name, COALESCE(AVG(CASE WHEN r.status='published' THEN r.rating END),0) AS average_rating, COUNT(CASE WHEN r.status='published' THEN r.id END) AS review_count FROM properties p LEFT JOIN users u ON u.id=p.owner_id LEFT JOIN property_reviews r ON r.property_id=p.id WHERE ${where.join(" AND ")} GROUP BY p.id ORDER BY ${order} LIMIT 100`, params);
     const user = await currentUser(req); const favRows = user ? await query("SELECT property_id FROM favorites WHERE user_id=?", [user.id]) : [];
     res.json({ properties: await attachPropertyImages(rows), favoriteIds: favRows.map((row) => row.property_id), areas: [...new Set(rows.map((row) => row.area))] });
   } catch (error) { next(error); }
 });
+app.get("/api/properties/:id/reviews", async (req, res, next) => { try {
+  const reviews = await query("SELECT r.id,r.rating,r.body,r.created_at,u.name AS reviewer_name FROM property_reviews r JOIN users u ON u.id=r.reviewer_id WHERE r.property_id=? AND r.status='published' ORDER BY r.created_at DESC LIMIT 100", [int(req.params.id)]);
+  res.json({ reviews });
+} catch (error) { next(error); } });
+app.post("/api/properties/:id/reviews", requireAuth, async (req, res, next) => { try {
+  const propertyId = int(req.params.id), rating = int(req.body.rating, 0), body = clean(req.body.body, 1800);
+  if (rating < 1 || rating > 5 || body.length < 10) return res.status(400).json({ error: "Choose a rating from 1 to 5 and write a useful review." });
+  const eligible = await query("SELECT id FROM enquiries WHERE user_id=? AND property_id=? LIMIT 1", [req.user.id, propertyId]);
+  if (!eligible.length) return res.status(403).json({ error: "Reviews are available after you have made an in-site enquiry about this property." });
+  await execute("INSERT INTO property_reviews (property_id,reviewer_id,rating,body,status) VALUES (?,?,?,?, 'pending') ON DUPLICATE KEY UPDATE rating=VALUES(rating),body=VALUES(body),status='pending',updated_at=NOW()", [propertyId, req.user.id, rating, body]);
+  res.status(201).json({ message: "Review submitted for admin review." });
+} catch (error) { next(error); } });
 app.get("/api/products", async (_req, res, next) => { try { const rows = await query("SELECT p.*, u.name AS vendor_name FROM products p LEFT JOIN users u ON u.id=p.vendor_id WHERE p.published=1 AND p.status='approved' ORDER BY p.updated_at DESC LIMIT 100"); res.json({ products: await attachProductImages(rows) }); } catch (error) { next(error); } });
 app.get("/api/posts", async (req, res, next) => { try {
   const user = await currentUser(req);
@@ -177,6 +191,9 @@ app.get("/api/social", async (_req, res, next) => { try { const row=(await query
 app.get("/api/roommates", async (_req, res, next) => { try { const rows=await query("SELECT r.*, u.name AS user_name FROM roommate_listings r JOIN users u ON u.id=r.user_id WHERE r.published=1 AND r.status=\'approved\' ORDER BY r.created_at DESC LIMIT 100"); res.json({ listings: rows }); } catch (error) { next(error); } });
 app.post("/api/roommates", requireAuth, async (req,res,next)=>{ try { const b=req.body; const title=clean(b.title,180), area=clean(b.area,100), lookingFor=clean(b.lookingFor,120), bio=clean(b.bio,2000), budget=int(b.budget,0); if(!title||!area||!lookingFor||!bio||!budget) return res.status(400).json({error:"Complete the roommate profile and budget before submitting."}); const result=await execute("INSERT INTO roommate_listings (user_id,title,area,budget,move_in_date,looking_for,bio) VALUES (?,?,?,?,?,?,?)",[req.user.id,title,area,budget,b.moveInDate||null,lookingFor,bio]); res.status(201).json({id:result.insertId,message:"Roommate profile submitted for review."}); } catch(error){next(error)} });
 app.post("/api/roommates/:id/requests", requireAuth, async (req,res,next)=>{ try { const message=clean(req.body.message,1200); if(!message) return res.status(400).json({error:"Write a short introduction first."}); await execute("INSERT INTO roommate_requests (listing_id,requester_id,message) SELECT ?,?,? FROM roommate_listings WHERE id=? AND published=1 AND status=\'approved\'",[int(req.params.id),req.user.id,message,int(req.params.id)]); res.status(201).json({message:"Your roommate introduction was sent."}); } catch(error){next(error)} });
+app.get("/api/roommate-requests", requireAuth, async (req,res,next)=>{try{const rows=await query("SELECT rr.*,rl.title,rl.user_id AS owner_id,u.name AS requester_name FROM roommate_requests rr JOIN roommate_listings rl ON rl.id=rr.listing_id JOIN users u ON u.id=rr.requester_id WHERE rr.requester_id=? OR rl.user_id=? ORDER BY rr.created_at DESC LIMIT 100",[req.user.id,req.user.id]);res.json({requests:rows})}catch(error){next(error)}});
+app.patch("/api/roommate-requests/:id", requireAuth, async (req,res,next)=>{try{const id=int(req.params.id), nextStatus=["accepted","declined","cancelled"].includes(req.body.status)?req.body.status:null;if(!nextStatus)return res.status(400).json({error:"Invalid roommate request status."});const row=(await query("SELECT rr.*,rl.user_id AS owner_id FROM roommate_requests rr JOIN roommate_listings rl ON rl.id=rr.listing_id WHERE rr.id=? LIMIT 1",[id]))[0];if(!row)return res.status(404).json({error:"Roommate request not found."});if(req.user.id!==Number(row.owner_id)&&req.user.id!==Number(row.requester_id))return res.status(403).json({error:"You cannot manage this request."});if(nextStatus!=="cancelled"&&req.user.id!==Number(row.owner_id))return res.status(403).json({error:"Only the listing owner can accept or decline an introduction."});await execute("UPDATE roommate_requests SET status=? WHERE id=?",[nextStatus,id]);if(nextStatus==="accepted")await execute("INSERT IGNORE INTO roommate_connections (request_id,listing_id,requester_id,owner_id) VALUES (?,?,?,?)",[id,row.listing_id,row.requester_id,row.owner_id]);res.json({ok:true,status:nextStatus})}catch(error){next(error)}});
+app.get("/api/roommate-connections", requireAuth, async (req,res,next)=>{try{const rows=await query("SELECT c.id,c.status,c.created_at,u.name AS other_name FROM roommate_connections c JOIN users u ON u.id=IF(c.requester_id=?,c.owner_id,c.requester_id) WHERE (c.requester_id=? OR c.owner_id=?) AND c.status='active' ORDER BY c.created_at DESC",[req.user.id,req.user.id,req.user.id]);res.json({connections:rows})}catch(error){next(error)}});
 
 app.post("/api/favorites/:propertyId", requireAuth, async (req, res, next) => { try { await execute("INSERT IGNORE INTO favorites (user_id, property_id) SELECT ?, id FROM properties WHERE id=? AND published=1", [req.user.id, int(req.params.propertyId)]); res.json({ ok: true }); } catch (error) { next(error); } });
 app.delete("/api/favorites/:propertyId", requireAuth, async (req, res, next) => { try { await execute("DELETE FROM favorites WHERE user_id=? AND property_id=?", [req.user.id, int(req.params.propertyId)]); res.json({ ok: true }); } catch (error) { next(error); } });
@@ -219,6 +236,16 @@ app.post("/api/products", requireAuth, requireAnyRole("Vendor"), async (req, res
   } catch (error) { next(error); }
 });
 app.get("/api/my/products", requireAuth, async (req, res, next) => { try { const rows = await query("SELECT * FROM products WHERE vendor_id=? ORDER BY updated_at DESC", [req.user.id]); res.json({ products: await attachProductImages(rows) }); } catch (error) { next(error); } });
+app.patch("/api/my/products/:id", requireAuth, requireAnyRole("Vendor"), async (req, res, next) => { try {
+  const id = int(req.params.id), b = req.body;
+  const owned = (await query("SELECT id FROM products WHERE id=? AND vendor_id=? LIMIT 1", [id, req.user.id]))[0];
+  if (!owned) return res.status(404).json({ error: "Product not found in your vendor workspace." });
+  const title=clean(b.title,180), description=clean(b.description,5000), price=int(b.price,0), stock=clean(b.stockStatus||"in_stock",32), delivery=clean(b.deliveryInfo,240);
+  if (!title || !description || price < 1) return res.status(400).json({ error: "Add a product name, description, and valid price." });
+  await execute("UPDATE products SET title=?,description=?,price=?,stock_status=?,delivery_info=?,status='pending',published=0,updated_at=NOW() WHERE id=? AND vendor_id=?", [title,description,price,stock,delivery,id,req.user.id]);
+  await saveImages("product", id, list(b.images));
+  res.json({ message: "Product changes saved and sent for admin review." });
+} catch (error) { next(error); } });
 
 async function saveImages(kind, id, images) {
   const table = kind === "property" ? "property_images" : "product_images";
@@ -250,6 +277,8 @@ app.patch("/api/admin/properties/:id", requireAdmin, async (req, res, next) => {
 app.patch("/api/admin/products/:id", requireAdmin, async (req, res, next) => { try { const b = req.body, status = ["pending", "approved", "rejected", "hidden"].includes(b.status) ? b.status : null; if (!status) return res.status(400).json({ error: "Invalid product status." }); const published = status === "approved" && bool(b.published); await execute("UPDATE products SET status=?, published=?, admin_note=?, title=COALESCE(NULLIF(?,''),title), description=COALESCE(NULLIF(?,''),description), price=COALESCE(NULLIF(?,0),price), updated_at=NOW() WHERE id=?", [status, published ? 1 : 0, clean(b.note, 2000) || null, clean(b.title, 180), clean(b.description, 5000), int(b.price, 0), int(req.params.id)]); res.json({ product: await productById(req.params.id) }); } catch (error) { next(error); } });
 app.post("/api/admin/properties", requireAdmin, async (req, res, next) => { try { const b = req.body; const result = await execute("INSERT INTO properties (title, description, area, price_year, walk_minutes, facilities_json, availability_status, availability_date, video_url, status, published, verification_status, admin_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', 1, 'verified', ?)", [clean(b.title, 180), clean(b.description, 5000), clean(b.area, 100), int(b.priceYear), Number(b.walkMinutes || 0), JSON.stringify(list(b.facilities)), clean(b.availabilityStatus || "available", 32), b.availabilityDate || null, clean(b.videoUrl, 700) || null, "Added by admin"]); await saveImages("property", result.insertId, list(b.images)); res.status(201).json({ property: await propertyById(result.insertId) }); } catch (error) { next(error); } });
 app.post("/api/admin/products", requireAdmin, async (req, res, next) => { try { const b = req.body; const result = await execute("INSERT INTO products (title, description, price, stock_status, delivery_info, status, published, verification_status, admin_note) VALUES (?, ?, ?, ?, ?, 'approved', 1, 'verified', ?)", [clean(b.title, 180), clean(b.description, 5000), int(b.price), clean(b.stockStatus || "in_stock", 32), clean(b.deliveryInfo, 240), "Added by admin"]); await saveImages("product", result.insertId, list(b.images)); res.status(201).json({ product: await productById(result.insertId) }); } catch (error) { next(error); } });
+app.get("/api/admin/reviews", requireAdmin, async (_req,res,next)=>{try{res.json({reviews:await query("SELECT r.*,p.title AS property_title,u.name AS reviewer_name,u.email FROM property_reviews r JOIN properties p ON p.id=r.property_id JOIN users u ON u.id=r.reviewer_id ORDER BY FIELD(r.status,'pending','published','hidden'),r.created_at DESC LIMIT 300")})}catch(error){next(error)}});
+app.patch("/api/admin/reviews/:id", requireAdmin, async (req,res,next)=>{try{const status=["pending","published","hidden"].includes(req.body.status)?req.body.status:"hidden";await execute("UPDATE property_reviews SET status=?,admin_note=? WHERE id=?",[status,clean(req.body.note,2000)||null,int(req.params.id)]);res.json({ok:true})}catch(error){next(error)}});
 app.get("/api/admin/comments", requireAdmin, async (_req,res,next)=>{try{
   const comments=await query("SELECT c.*,u.name AS author_name,u.email,p.title AS post_title FROM post_comments c JOIN users u ON u.id=c.user_id JOIN campus_posts p ON p.id=c.post_id ORDER BY FIELD(c.status,'published','hidden'),c.created_at DESC LIMIT 300"); res.json({comments});
 }catch(error){next(error)}});
