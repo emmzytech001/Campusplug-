@@ -78,6 +78,9 @@ async function presignStorage(key) {
 app.get("/api/health", async (_req, res) => { res.json({ ok: true, service: "campusplug", timestamp: new Date().toISOString() }); });
 app.get("/api/config", (_req, res) => res.json({ googleConfigured: googleConfigured(), features: { emailAuth: true, storage: Boolean(process.env.MANUS_API_URL && process.env.MANUS_API_KEY) } }));
 
+app.get("/api/profile", requireAuth, async (req,res,next)=>{try{const user=(await query("SELECT * FROM users WHERE id=? LIMIT 1",[req.user.id]))[0];res.json({profile:safeUser(user)})}catch(error){next(error)}});
+app.patch("/api/profile", requireAuth, async (req,res,next)=>{try{const b=req.body, name=clean(b.name,160), bio=clean(b.bio,500), department=clean(b.department,160), level=clean(b.level,40), preferredArea=clean(b.preferredArea,100), roommatePreferences=clean(b.roommatePreferences,500), visibility=["public","private"].includes(b.profileVisibility)?b.profileVisibility:"public", avatarUrl=clean(b.avatarUrl,500);if(name.length<2)return res.status(400).json({error:"Enter a name with at least two characters."});if(avatarUrl&&!/^\/manus-storage\/[A-Za-z0-9._\/-]+$/.test(avatarUrl))return res.status(400).json({error:"That profile image is not valid."});await execute("UPDATE users SET name=?,bio=?,department=?,level=?,preferred_area=?,roommate_preferences=?,profile_visibility=?,avatar_url=COALESCE(NULLIF(?,''),avatar_url),updated_at=NOW() WHERE id=?",[name,bio||null,department||null,level||null,preferredArea||null,roommatePreferences||null,visibility,avatarUrl,req.user.id]);res.json({profile:safeUser((await query("SELECT * FROM users WHERE id=?",[req.user.id]))[0]),message:"Profile saved."})}catch(error){next(error)}});
+app.get("/api/users/:id/profile", async (req,res,next)=>{try{const row=(await query("SELECT * FROM users WHERE id=? AND status='active' LIMIT 1",[int(req.params.id)]))[0];if(!row)return res.status(404).json({error:"Profile not found."});const profile=safeUser(row);if(profile.profileVisibility==="private")return res.json({profile:{id:profile.id,name:profile.name,avatarUrl:profile.avatarUrl,roles:profile.roles}});res.json({profile:{id:profile.id,name:profile.name,avatarUrl:profile.avatarUrl,bio:profile.bio,department:profile.department,level:profile.level,preferredArea:profile.preferredArea,roommatePreferences:profile.roommatePreferences,roles:profile.roles}})}catch(error){next(error)}});
 app.get("/api/me", async (req, res, next) => { try { const user = await ensureAdminByEmail(await currentUser(req)); res.json({ user: safeUser(user) }); } catch (error) { next(error); } });
 app.post("/api/auth/signup", async (req, res, next) => {
   try {
@@ -257,10 +260,11 @@ async function saveImages(kind, id, images) {
 }
 app.post("/api/uploads/presign", requireAuth, async (req, res, next) => {
   try {
-    const mime = clean(req.body.mime, 80), size = int(req.body.size, 0), kind = ["property", "product", "post"].includes(req.body.kind) ? req.body.kind : "property";
+    const mime = clean(req.body.mime, 80), size = int(req.body.size, 0), kind = ["property", "product", "post", "profile"].includes(req.body.kind) ? req.body.kind : "property";
     if (!/^image\/(jpeg|png|webp|gif)$/i.test(mime) || size < 1 || size > 8 * 1024 * 1024) return res.status(400).json({ error: "Use a JPG, PNG, WebP, or GIF image up to 8 MB." });
     if (kind === "property" && !hasRole(req.user, "Landlord / agent")) return res.status(403).json({ error: "Only approved accommodation partners can upload property images." });
     if (kind === "product" && !hasRole(req.user, "Vendor")) return res.status(403).json({ error: "Only approved vendors can upload product images." });
+    if (kind === "profile" && !req.user) return res.status(401).json({ error: "Sign in to upload a profile image." });
     const key = `campusplug/${kind}/${req.user.id}/${Date.now()}-${crypto.randomBytes(5).toString("hex")}`;
     const uploadUrl = await presignStorage(key);
     res.json({ key, uploadUrl, url: `/manus-storage/${key}` });

@@ -36,7 +36,7 @@ export function rolesForUser(row) {
 
 export function publicUser(row) {
   if (!row) return null;
-  return { id: row.id, email: row.email, name: row.name, phone: row.phone, avatarUrl: row.avatar_url, roles: rolesForUser(row), isAdmin: Boolean(row.is_admin), status: row.status };
+  return { id: row.id, email: row.email, name: row.name, phone: row.phone, avatarUrl: row.avatar_url, bio: row.bio || "", department: row.department || "", level: row.level || "", preferredArea: row.preferred_area || "", roommatePreferences: row.roommate_preferences || "", profileVisibility: row.profile_visibility || "public", roles: rolesForUser(row), isAdmin: Boolean(row.is_admin), status: row.status };
 }
 
 export function hasRole(user, role) {

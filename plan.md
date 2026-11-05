@@ -4,15 +4,18 @@
 
 CampusPlug will become a real UNIZIK student platform built from the uploaded prototype. The current accommodation-first experience, durable accounts, role applications, admin moderation, property/product publishing, campus updates, roommate listings, social links, and image storage remain the foundation.
 
+Student profiles are a first-class cross-feature foundation: every student can maintain a privacy-controlled identity with an optional photo, bio, department, level, preferred area, and roommate preferences. Profile details will attach safely to roommate matching, Lounge posts, messaging, notifications, and event participation.
+
 The approved expansion is phased and additive: accommodation improvements; roommate matching and private connections; vendor dashboards; CampusPlug Lounge; private messaging; notifications; events and opportunities; and useful student tools. The current Manus/MySQL/Express architecture remains in place while each slice is implemented, tested, and reviewed. A later Supabase migration is not part of this implementation pass.
 
 ## Delivery phases
 
-1. **Trust and marketplace foundation:** enrich accommodation search/details and owner context, add honest review/rating records, complete roommate request accept/decline and private connection states, and give approved vendors a real dashboard for product management.
-2. **CampusPlug Lounge:** extend the moderated campus feed with categories, saved posts, replies, edit/delete-own-posts, reports, and latest/popular sorting.
-3. **Private messaging and notifications:** add participant-only conversations, unread counts, message reporting/blocking, and an in-app notification centre for messages, roommate requests, post replies, enquiries, and important announcements.
-4. **Events and opportunities:** add moderated event submissions, organiser details, dates, locations, registration links, and upcoming/past filtering.
-5. **Student tools:** retain the budget planner, exam countdown, lodge checklist, and safety contacts while adding assignment/deadline reminders, academic resources, and campus survival tips.
+0. **Student identity foundation:** add editable student profiles, optional profile photos, public/private visibility, and privacy-safe profile summaries for future Lounge, roommate, messaging, and event interactions.
+2. **Trust and marketplace foundation:** enrich accommodation search/details and owner context, add honest review/rating records, complete roommate request accept/decline and private connection states, and give approved vendors a real dashboard for product management.
+3. **CampusPlug Lounge:** extend the moderated campus feed with categories, saved posts, replies, edit/delete-own-posts, reports, and latest/popular sorting.
+4. **Private messaging and notifications:** add participant-only conversations, unread counts, message reporting/blocking, and an in-app notification centre for messages, roommate requests, post replies, enquiries, and important announcements.
+5. **Events and opportunities:** add moderated event submissions, organiser details, dates, locations, registration links, and upcoming/past filtering.
+6. **Student tools:** retain the budget planner, exam countdown, lodge checklist, and safety contacts while adding assignment/deadline reminders, academic resources, and campus survival tips.
 
 ## Implementation approach
 
@@ -26,7 +29,7 @@ The approved expansion is phased and additive: accommodation improvements; roomm
 
 ## Data model additions by phase
 
-The existing tables remain unchanged unless an additive migration is required. Phase 1 adds property reviews and explicit roommate connection/request states. Later phases add Lounge saves/replies/reports, conversations/messages/notifications, and events/opportunities. Each migration is idempotent through the existing migration runner and preserves existing records.
+The existing tables remain unchanged unless an additive migration is required. The profile foundation adds privacy-controlled student profile fields to users. Phase 1 adds property reviews and explicit roommate connection/request states. Later phases add Lounge saves/replies/reports, conversations/messages/notifications, and events/opportunities. Each migration is idempotent through the existing migration runner and preserves existing records.
 
 ## Project structure
 

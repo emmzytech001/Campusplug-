@@ -1,3 +1,9 @@
+## 7. Student profiles
+
+- [ ] Students can edit a privacy-safe profile with optional photo, bio, department, level, preferred area, and roommate preferences.
+- [ ] Students can choose public profile details or private mode; email and phone remain private in both modes.
+- [ ] Profile summaries can be attached to roommate matching, Lounge posts, private conversations, notifications, and events without exposing sensitive contact data.
+
 
 ## 8. Accommodation improvements
 
